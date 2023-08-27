@@ -5,6 +5,7 @@ import telegram
 from telegram import Update, ForceReply
 from dotenv import load_dotenv
 from telegram.ext import ConversationHandler, Updater, CommandHandler, MessageHandler, Filters, CallbackContext
+import sqlite3
 
 load_dotenv()
 
@@ -17,6 +18,29 @@ bot = telegram.Bot(token=TELEGRAM_TOKEN)
 openai.api_key = OPENAI_API_KEY
 model_engine = "text-davinci-003"
 
+
+def create_database():
+    connection = sqlite3.connect("message_history.db")
+    cursor = connection.cursor()
+    cursor.execute('''CREATE TABLE IF NOT EXISTS messages (
+                        id INTEGER PRIMARY KEY,
+                        user_id INTEGER,
+                        username TEXT,
+                        message_id INTEGER,
+                        date TEXT,
+                        text TEXT)''')
+    connection.commit()
+    connection.close()
+
+create_database()
+
+def save_message(user_id, username, message_id, date, text):
+    connection = sqlite3.connect("message_history.db")
+    cursor = connection.cursor()
+    cursor.execute("INSERT INTO messages (user_id, username, message_id, date, text) VALUES (?, ?, ?, ?, ?)",
+                   (user_id, username, message_id, date, text))
+    connection.commit()
+    connection.close()
 
 def start(update: Update, context: CallbackContext):
     update.message.reply_text('Приветствую!\n\nВведите пароль:',
@@ -35,7 +59,7 @@ def password_check(update: Update, context: CallbackContext):
 def respond(update, context):
 
     message_text = update.message.text
-
+    save_message(update.message.from_user.id, update.message.from_user.username, update.message.message_id, update.message.date, update.message.text)
 
     response = openai.Completion.create(
         model=model_engine,
@@ -47,6 +71,11 @@ def respond(update, context):
     )
 
     update.message.reply_text(response.choices[0].text)
+    # bot_username = bot_answer.from_user.username
+    # bot_user_id = bot_answer.from_user.id
+    # save_message(bot_user_id, bot_username, bot_answer.message_id, bot_answer.date, bot_answer)
+    save_message("Bot", "Bot", update.message.message_id,
+                 update.message.date, response.choices[0].text)
 
 def main():
 
