@@ -19,7 +19,7 @@ model_engine = "text-davinci-003"
 
 
 def start(update: Update, context: CallbackContext):
-    update.message.reply_text('This is a password-protected bot.\n\nPlease enter the password:',
+    update.message.reply_text('Приветствую!\n\nВведите пароль:',
                               reply_markup=ForceReply())
 
 
@@ -27,9 +27,9 @@ def password_check(update: Update, context: CallbackContext):
     user_input = update.message.text
 
     if user_input == PASSWORD:
-        update.message.reply_text('Access granted! Welcome to the bot.')
+        update.message.reply_text('Пароль верный. Приятного пользования.')
     else:
-        update.message.reply_text('Access denied! Invalid password. Try again.',
+        update.message.reply_text('Пароль неверный. Попробуйте еще раз.',
                                   reply_markup=ForceReply())
 
 def respond(update, context):
@@ -40,7 +40,7 @@ def respond(update, context):
     response = openai.Completion.create(
         model=model_engine,
         prompt=message_text,
-        max_tokens=60,
+        max_tokens=300,
         n=1,
         stop=None,
         temperature=0.7,
