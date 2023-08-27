@@ -3,7 +3,7 @@ import os
 import openai
 import telegram
 from dotenv import load_dotenv
-from telegram.ext import ConversationHandler, CommandHandler, Updater, MessageHandler, Filters
+from telegram.ext import ConversationHandler, Updater
 
 load_dotenv()
 
@@ -33,16 +33,6 @@ def respond(update, context):
 
     update.message.reply_text(response.choices[0].text)
 
-# conv_handler = ConversationHandler(
-#     entry_points=[CommandHandler('start', start)],
-#     states={
-#         PASSWORD: [MessageHandler(Filters.text, password)],
-#         ACTION: [MessageHandler(Filters.text, action)]
-#     },
-#     fallbacks=[]
-# )
-
-
 def main():
 
     updater = Updater(token=TELEGRAM_TOKEN, use_context=True)
@@ -50,9 +40,6 @@ def main():
 
 
     dispatcher.add_handler(telegram.ext.MessageHandler(telegram.ext.Filters.text, respond))
-
-
-    # updater.dispatcher.add_handler(conv_handler)
     updater.start_polling()
     updater.idle()
 
