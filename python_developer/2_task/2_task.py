@@ -13,7 +13,7 @@ class Settings:
     telegram_token = os.environ.get('TELEGRAM_TOKEN')
     openai_api_key = os.environ.get('OPENAI_API_KEY')
     password = os.environ.get('PASSWORD')
-    model_engine = "text-davinci-003"
+    model_engine = "gpt-3.5-turbo"
     greeting_message = "Приветствую!\n\nВведите пароль:"
     correct_pass_msg = "Пароль верный. Приятного пользования."
     incorrect_pass_msg = "Пароль неверный. Попробуйте еще раз."
@@ -44,6 +44,8 @@ class DB:
 
 
 class Telegram:
+    messages = []
+
     def start(self, update: Update, context: CallbackContext):
         update.message.reply_text(Settings().greeting_message, reply_markup=ForceReply())
 
@@ -59,18 +61,19 @@ class Telegram:
         up_m = update.message
         message_text = up_m.text
         DB().save_message(up_m.from_user.id, up_m.from_user.username, up_m.message_id, up_m.date, up_m.text)
+        self.messages.append({"role": "user", "content": message_text})
 
-        response = openai.Completion.create(
+        response = openai.ChatCompletion.create(
             model=Settings().model_engine,
-            prompt=message_text,
-            max_tokens=300,
-            n=1,
-            stop=None,
-            temperature=0.7,
+            messages=self.messages
         )
+        response_msg = response.choices[0].message.content
+        up_m.reply_text(response_msg)
+        self.messages.append({"role": "assistant", "content": response_msg})
+        DB().save_message("Bot", "Bot", up_m.message_id, up_m.date, response_msg)
 
-        up_m.reply_text(response.choices[0].text)
-        DB().save_message("Bot", "Bot", up_m.message_id, up_m.date, response.choices[0].text)
+    def clear_context(self, update, context):
+        self.messages.clear()
 
 
 def main():
@@ -79,6 +82,7 @@ def main():
     updater = Updater(token=Settings().telegram_token, use_context=True)
     dispatcher = updater.dispatcher
     dispatcher.add_handler(CommandHandler('start', Telegram().start))
+    dispatcher.add_handler(CommandHandler('clear_context', Telegram().clear_context))
     dispatcher.add_handler(MessageHandler(Filters.reply, Telegram().password_check))
     dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, Telegram().respond))
     updater.start_polling()
